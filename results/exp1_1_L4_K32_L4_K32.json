@@ -1,0 +1,71 @@
+{
+  "config": {
+    "run_name": "exp1_1_L4_K32",
+    "out_dir": "./results",
+    "seed": 42,
+    "device": null,
+    "bs_train": 50,
+    "bs_test": 12,
+    "batches": 10,
+    "epochs": 5,
+    "early_stopping": 5,
+    "checkpoints": null,
+    "lr": 0.001,
+    "reg": 0.0005,
+    "filters_per_layer": [
+      32
+    ],
+    "layers_per_block": 4,
+    "pool_every": 4,
+    "hidden_dims": [
+      100
+    ],
+    "model_type": "cnn",
+    "kw": {
+      "activation_type": "lrelu",
+      "activation_params": {
+        "negative_slope": 0.1
+      },
+      "pooling_type": "max",
+      "pooling_params": {
+        "kernel_size": 2
+      },
+      "conv_params": {
+        "kernel_size": 3,
+        "padding": 1,
+        "stride": 1
+      }
+    }
+  },
+  "results": {
+    "num_epochs": 5,
+    "train_loss": [
+      1.4307315924167634,
+      0.9688221134245396,
+      0.7469249191880226,
+      0.5587099866271019,
+      0.39424838110804555
+    ],
+    "train_acc": [
+      50.62,
+      68.394,
+      76.982,
+      84.202,
+      90.282
+    ],
+    "test_loss": [
+      1.1107572447553242,
+      0.9250074113658864,
+      0.8755276885768064,
+      0.915822289812622,
+      1.0687472619366445
+    ],
+    "test_acc": [
+      60.38,
+      67.39,
+      69.16,
+      69.45,
+      69.37
+    ]
+  }
+}
