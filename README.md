@@ -13,47 +13,107 @@ Built on top of a framework that provided base class interfaces, data
 loading utilities, and function signatures. All mathematical logic,
 architectural decisions, and algorithm implementations are my own.
 
-**Backpropagation engine** (`layers.py`)
-Forward and backward passes for LeakyReLU, ReLU, Linear,
-CrossEntropyLoss, and Dropout from scratch. Each layer caches
-intermediate values during forward for use in backprop — no
-torch.autograd used.
+---
 
-**Optimizers** (`optimizers.py`)
-SGD with L2 regularization, Momentum SGD with velocity accumulation,
-and RMSProp with per-parameter adaptive rates. No torch.optim.
+### Backpropagation Engine (`layers.py`)
 
-**MLP** (`mlp.py`)
-General-purpose multi-layer perceptron with configurable depth, width,
-and activation functions, including support for nn.Module instances as
-activations.
+A custom automatic differentiation system using abstract `Layer`
+classes with explicit `forward` and `backward` methods. Implemented:
 
-**CNN & ResNet** (`cnn.py`)
-Configurable CNN with [(Conv→Act)×P→Pool]×(N/P) architecture.
-ResidualBlock with 1×1 projection shortcuts, ResidualBottleneckBlock
-(1×1→3×3→1×1), and ResNet with grouped residual blocks and pooling.
-Extended with YourCNN — a custom architecture adding grouped
-convolutions (ResNeXt-style, cardinality=32), bottleneck blocks with
-adaptive inner dimensions, AdaptiveAvgPool2d for input-size
-independence, and a classifier MLP with Dropout(0.4)+LayerNorm between
-layers.
+- `LeakyReLU` / `ReLU` — forward and gradient w.r.t. input
+- `Linear` — forward pass and gradients w.r.t. weights, biases,
+  and input
+- `CrossEntropyLoss` — numerically stable implementation with
+  log-sum-exp trick
+- `Dropout` — training/eval mode switching, inverted scaling
 
-**VAE** (`autoencoder.py`)
-Reparameterization trick with learned μ and log σ² projections. VAE
-loss combining reconstruction error and closed-form KL divergence with
-diagonal covariance.
+Each layer caches intermediate values in `grad_cache` during the
+forward pass for use in backpropagation.
 
-**Character-level RNN** (`charnn.py`)
-One-hot encoding/decoding, sequence batching with next-character
-labels, GRU and LSTM cell forward passes, temperature sampling.
+---
 
-**Transformer encoder with sliding window attention** (`transformer.py`)
-Each token attends only to a local window of ±w/2 neighbors.
-Implemented efficiently using unfold to extract sliding windows,
-torch.einsum for batched local dot products, and scatter_add to
-reconstruct the full attention matrix. Handles multi-head, boundary
-masking, and padding masks. Full encoder stack with sinusoidal
-positional encoding, LayerNorm, GELU FFN, and CLS classification head.
+### Optimizers (`optimizers.py`)
+
+From-scratch implementations (no `torch.optim`):
+
+- **SGD** — gradient step with L2 regularization
+- **Momentum SGD** — velocity accumulation with configurable β
+- **RMSProp** — per-parameter adaptive learning rate with
+  exponential moving average of squared gradients
+
+---
+
+### MLP (`mlp.py`)
+
+A general-purpose multi-layer perceptron that accepts arbitrary depth,
+width, and activation functions (including `nn.Module` instances for
+custom activations like Dropout+LayerNorm sequences).
+
+---
+
+### CNN & ResNet (`cnn.py`)
+
+- **CNN** — configurable conv-pool architecture:
+  `[(Conv → Act) × P → Pool] × (N/P)` followed by an MLP classifier
+- **ResidualBlock** — dimension-preserving skip connections with
+  optional BatchNorm and Dropout; uses a 1×1 projection shortcut when
+  input/output channels differ
+- **ResidualBottleneckBlock** — 1×1 → 3×3 → 1×1 bottleneck structure
+- **ResNet** — ResidualBlock groups with pooling between each group
+- **YourCNN** — custom architecture extending ResNet with:
+  - Grouped convolutions (ResNeXt-style cardinality=32)
+  - Bottleneck blocks with adaptive inner dimensions
+  - `AdaptiveAvgPool2d` at the end of the feature extractor for
+    input-size independence
+  - MLP classifier with Dropout(0.4) + LayerNorm between layers
+
+---
+
+### VAE (`autoencoder.py`)
+
+A Variational Autoencoder for image generation:
+
+- **EncoderCNN** — 4-layer CNN (5×5 convolutions, stride-2
+  downsampling, BatchNorm, ReLU) projecting to a latent feature map
+- **DecoderCNN** — mirror architecture using `ConvTranspose2d` with
+  `output_padding=1` to exactly recover spatial dimensions; output
+  scaled to [−1, 1] with Tanh
+- **VAE** — reparameterization trick with learned μ and log σ²
+  projections; KL divergence loss + reconstruction loss (closed-form
+  with diagonal covariance)
+
+---
+
+### Character-Level RNN (`charnn.py`)
+
+Character-level language model with:
+
+- One-hot encoding / decoding with vocabulary maps
+- Sequence batching with next-character labels
+- GRU and LSTM cell implementations with hidden state management
+- Text generation via temperature sampling
+
+---
+
+### Transformer Encoder with Sliding Window Attention (`transformer.py`)
+
+A Transformer encoder for sequence classification, with a custom
+attention mechanism:
+
+**Sliding Window Attention** (from Longformer)
+Each token attends only to a local window of ±w/2 neighbors instead
+of the full sequence. Implemented efficiently using `unfold` to
+extract sliding windows from padded key/value tensors, then
+`torch.einsum` for batched local dot products. Handles:
+- Multi-head attention (`[Batch, Heads, SeqLen, Dim]`)
+- Out-of-bounds masking at sequence boundaries
+- Padding token masking (zero out pad query rows)
+
+**Full Encoder**
+- Token embedding + sinusoidal positional encoding
+- N × `EncoderLayer`: sliding-window multi-head attention →
+  Add & Norm → position-wise FFN (GELU) → Add & Norm
+- CLS-token classification head with a 2-layer MLP
 
 ---
 
